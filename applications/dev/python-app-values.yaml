@@ -1,7 +1,49 @@
-replicaCount: 2
+# ============================================================================
+# python-app  —  DEV  overrides
+# Base defaults come from  helm/values.yaml ; this file only overrides what
+# differs for python-app in DEV. ArgoCD merges: base → this file.
+# ============================================================================
+
+# --- What app this is ------------------------------------------------------
 image:
   repository: asmabadrwork/python-cicd-demo
-  tag: latest   # <--- Updated by CI!
+  tag: latest            # <--- Updated by CI!  (pin a SHA when you tackle
+                         #      rollbacks / strategies)
 service:
-  port: 80
-  targetPort: 5000
+  port: 80               # the port Kong connects to
+  targetPort: 5000       # the port the app listens on inside the container
+
+# --- DEV scaling -----------------------------------------------------------
+replicaCount: 2
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+# --- Health probes ---------------------------------------------------------
+# OFF until you confirm the app's real health path (wrong path = CrashLoop):
+# probes:
+#   enabled: true
+#   liveness:
+#     path: /healthz
+#   readiness:
+#     path: /healthz
+
+# --- Kong route ------------------------------------------------------------
+# The Ingress tells Kong: "host X → this app's ClusterIP service".
+ingress:
+  enabled: true
+  host: python-app-dev.tyagi.fun
+  path: /
+
+# --- Optional env vars / secrets -------------------------------------------
+# env:
+#   - name: LOG_LEVEL
+#     value: debug
+# envFrom:                    # pull a whole k8s Secret (e.g. ESO-managed) later
+#   - secretRef:
+#       name: python-app-db

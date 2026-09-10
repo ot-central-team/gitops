@@ -1,0 +1,16 @@
+{{- if .Values.podDisruptionBudget.enabled }}
+# Protects HA apps from accidental drains that take all replicas down.
+# Only meaningful when replicaCount > 1, so it is OFF by default.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "generic.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "generic.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "generic.selectorLabels" . | nindent 6 }}
+{{- end }}

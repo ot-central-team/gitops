@@ -1,7 +1,48 @@
-replicaCount: 2
+# ============================================================================
+# java-app  —  DEV  overrides
+# Base defaults come from  helm/values.yaml ; this file only overrides what
+# differs for java-app in DEV. ArgoCD merges: base → this file.
+# ============================================================================
+
+# --- What app this is ------------------------------------------------------
 image:
   repository: asmabadrwork/java-api-demo
-  tag: latest   # <--- Updated by CI!
+  tag: latest            # <--- Updated by CI!
 service:
-  port: 80
-  targetPort: 8080
+  port: 80               # the port Kong connects to
+  targetPort: 8080       # the port the app listens on inside the container
+
+# --- DEV scaling -----------------------------------------------------------
+replicaCount: 2
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# --- Health probes ---------------------------------------------------------
+# OFF until you confirm the app's real health path (wrong path = CrashLoop):
+# probes:
+#   enabled: true
+#   liveness:
+#     path: /healthz
+#   readiness:
+#     path: /healthz
+
+# --- Kong route ------------------------------------------------------------
+# The Ingress tells Kong: "host X → this app's ClusterIP service".
+ingress:
+  enabled: true
+  host: java-app-dev.tyagi.fun
+  path: /
+
+# --- Optional env vars / secrets -------------------------------------------
+# env:
+#   - name: JAVA_OPTS
+#     value: -Xmx512m
+# envFrom:                    # pull a whole k8s Secret (e.g. ESO-managed) later
+#   - secretRef:
+#       name: java-app-db

@@ -1,9 +1,139 @@
+# ============================================================================
+# generic-microservice chart — BASE VALUES (shared defaults across ALL apps)
+#
+# Each app/environment overrides these via Helm value merging —
+# ArgoCD's ApplicationSet feeds this file first, then:
+#   ../applications/<env>/<app>-values.yaml
+# Example: dev sets replicaCount: 2, prod sets 3. That per-file override is
+# the intended place for environment-specific differences (scaling, etc.).
+# ============================================================================
+
+# --- App scaling -----------------------------------------------------------
+# Default is 1; per-env values files bump per app (dev=2, prod=3, ...).
 replicaCount: 1
+
+# --- Image ----------------------------------------------------------------
 image:
   repository: nginx
-  tag: latest
+  # Pin a real tag (git SHA / semver). NEVER 'latest' if you want rollbacks.
+  tag: "1.27"
+  # Always is REQUIRED while tags are mutable ('latest'): IfNotPresent would
+  # cache 'latest' and never re-pull CI's new image. Switch to IfNotPresent
+  # the day you pin real immutable tags.
   pullPolicy: Always
+
+# --- Service ---------------------------------------------------------------
+# ClusterIP is intentional: Kong is the only thing that talks to apps.
 service:
   type: ClusterIP
-  port: 80
-  targetPort: 8080
+  port: 80            # the port Kong connects to
+  targetPort: 8080    # the port your app actually listens on in the container
+
+# --- Rendering knobs -------------------------------------------------------
+fullnameOverride: ""  # rename the app's objects (defaults to release/App name)
+nameOverride: ""      # reserved; usually not needed
+podAnnotations: {}
+
+# --- Health probes ---------------------------------------------------------
+# OFF by default because every app has its own health path.
+# Turn on per app in its values file:
+#   probes:
+#     enabled: true
+#     liveness:
+#       path: /healthz
+#     readiness:
+#       path: /healthz
+probes:
+  enabled: false
+  liveness:
+    path: /healthz
+    initialDelaySeconds: 15
+    periodSeconds: 10
+    timeoutSeconds: 2
+    failureThreshold: 3
+  readiness:
+    path: /healthz
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 2
+    failureThreshold: 3
+  startup:
+    enabled: false
+    path: /healthz
+    failureThreshold: 30
+    periodSeconds: 5
+
+# --- Resource requests/limits ----------------------------------------------
+# Ask for what the app really needs; tune in the per-env values file.
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+# --- Environment variables -------------------------------------------------
+# Plain env vars for the container:
+#   env:
+#     - name: LOG_LEVEL
+#       value: info
+# Or pull from an existing k8s Secret/ConfigMap (e.g. an ESO-managed secret):
+#   envFrom:
+#     - secretRef:
+#         name: my-app-db
+env: []
+envFrom: []
+
+# --- Autoscaling (HPA) -----------------------------------------------------
+# ON only when an app needs it (scale dev=2..3, prod=3..10, ...).
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  # targetMemoryUtilizationPercentage: 80   # optional second metric
+
+# --- Kong ingress (the route) ----------------------------------------------
+# ON per app to expose it: set host, apply, add a CNAME at your registrar.
+# The ALB wildcard cert (*.tyagi.fun) + Kong route everything else.
+ingress:
+  enabled: false
+  className: kong
+  host: python-app.example.com   # <-- set per app, e.g. python-app-prod.tyagi.fun
+  path: /
+  # Kong plugins/annotations go here, e.g.:
+  #   konghq.com/rate-limiting: '{"minute":60}'
+  annotations: {}
+
+# --- ServiceAccount / image pull -------------------------------------------
+# One SA per app by default — later you can attach IRSA (role-arn annotation)
+# or per-app imagePullSecrets right here.
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+imagePullSecrets: []
+
+# --- Hardening -------------------------------------------------------------
+# Safe defaults: drop Linux capabilities, block privilege escalation.
+# The pod still runs as the image's own user — forcing a UID here would
+# break images built to run as root, so do that per-app when you control it.
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+# --- Pod placement (rarely needed) ----------------------------------------
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# --- HA helper: PodDisruptionBudget ----------------------------------------
+# ON only for HA apps (replicaCount > 1). Protects against node drains
+# taking all replicas down at once.
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
