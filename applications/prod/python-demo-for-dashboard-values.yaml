@@ -1,28 +1,34 @@
 # ============================================================================
-# python-app  —  DEV  overrides
+# python-app  —  PROD  overrides
 # Base defaults come from  helm/values.yaml ; this file only overrides what
-# differs for python-app in DEV. ArgoCD merges: base → this file.
+# differs for python-app in PROD. ArgoCD merges: base → this file.
 # ============================================================================
 
 # --- What app this is ------------------------------------------------------
 image:
-  repository: asmabadrwork/python-cicd-demo
+  repository: 409178193343.dkr.ecr.us-west-2.amazonaws.com/python-demo-for-dashboard
   tag: latest            # <--- Updated by CI!  (pin a SHA when you tackle
                          #      rollbacks / strategies)
 service:
   port: 80               # the port Kong connects to
   targetPort: 5000       # the port the app listens on inside the container
 
-# --- DEV scaling -----------------------------------------------------------
-replicaCount: 2
+# --- PROD scaling ----------------------------------------------------------
+replicaCount: 3           # PROD runs bigger than DEV (2)
 
 resources:
   requests:
-    cpu: 100m
-    memory: 128Mi
-  limits:
-    cpu: 500m
+    cpu: 250m
     memory: 256Mi
+  limits:
+    cpu: 1
+    memory: 512Mi
+
+# --- HA helper -------------------------------------------------------------
+# PROD keeps at least 1 pod up even if a node gets drained:
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
 
 # --- Health probes ---------------------------------------------------------
 # OFF until you confirm the app's real health path (wrong path = CrashLoop):
@@ -37,13 +43,17 @@ resources:
 # The Ingress tells Kong: "host X → this app's ClusterIP service".
 ingress:
   enabled: true
-  host: python-app-dev.tyagi.fun
+  host: python-demo-for-dashboard-prod.tyagi.fun
   path: /
 
+# --- Optional autoscaling (needs metrics-server installed) -----------------
+# autoscaling:
+#   enabled: true
+#   minReplicas: 3
+#   maxReplicas: 10
+#   targetCPUUtilizationPercentage: 70
+
 # --- Optional env vars / secrets -------------------------------------------
-# env:
-#   - name: LOG_LEVEL
-#     value: debug
 # envFrom:                    # pull a whole k8s Secret (e.g. ESO-managed) later
 #   - secretRef:
 #       name: python-app-db

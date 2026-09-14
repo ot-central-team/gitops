@@ -9,15 +9,14 @@ spec:
   generators:
     - list:
         elements:
-          - app: python-app
-          - app: java-app
+          - app: python-demo-for-dashboard
   template:
     metadata:
       name: '{{app}}'
     spec:
       project: dev-project
       source:
-        repoURL: 'https://github.com/asmabadrwork/gitops-manifests.git'
+        repoURL: 'https://github.com/ot-central-team/gitops.git'
         targetRevision: HEAD
         path: helm
         helm:
