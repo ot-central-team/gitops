@@ -7,7 +7,7 @@
 # --- What app this is ------------------------------------------------------
 image:
   repository: 409178193343.dkr.ecr.us-west-2.amazonaws.com/python-demo-for-dashboard
-  tag: latest            # <--- Updated by CI!  (pin a SHA when you tackle
+  tag: 51e5573ca06cf792dc14351efa5fbb89febfd5ec
                          #      rollbacks / strategies)
 service:
   port: 80               # the port Kong connects to
