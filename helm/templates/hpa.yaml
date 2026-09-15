@@ -8,8 +8,14 @@ metadata:
     {{- include "generic.labels" . | nindent 4 }}
 spec:
   scaleTargetRef:
+    {{- /* A rollout strategy swaps the workload kind: Deployment → Rollout */}}
+    {{- if .Values.strategy }}
+    apiVersion: argoproj.io/v1alpha1
+    kind: Rollout
+    {{- else }}
     apiVersion: apps/v1
     kind: Deployment
+    {{- end }}
     name: {{ include "generic.fullname" . }}
   minReplicas: {{ .Values.autoscaling.minReplicas }}
   maxReplicas: {{ .Values.autoscaling.maxReplicas }}

@@ -8,13 +8,22 @@
 image:
   repository: 409178193343.dkr.ecr.us-west-2.amazonaws.com/python-demo-for-dashboard
   tag: 3965225e5a0f9870b79a981728022adb72760c38
-                         #      rollbacks / strategies)
 service:
   port: 80               # the port Kong connects to
   targetPort: 5000       # the port the app listens on inside the container
 
 # --- DEV scaling -----------------------------------------------------------
 replicaCount: 2
+
+# --- Deployment strategy ----------------------------------------------------
+# bluegreen → Argo Rollouts owns the rollout (active + preview ReplicaSets).
+# ArgoCD renders a Rollout + preview Service; Kong is unaffected.
+strategy: bluegreen
+
+# Blue-green knobs (only used while strategy: bluegreen above)
+blueGreen:
+  autoPromotionEnabled: true   # promote automatically once preview pods are Ready
+  scaleDownDelaySeconds: 60    # keep old pods 60s after promotion (rollback window)
 
 resources:
   requests:
@@ -25,13 +34,22 @@ resources:
     memory: 256Mi
 
 # --- Health probes ---------------------------------------------------------
-# OFF until you confirm the app's real health path (wrong path = CrashLoop):
-# probes:
-#   enabled: true
-#   liveness:
-#     path: /healthz
-#   readiness:
-#     path: /healthz
+# ON — the app has a real /health endpoint (returns {"status": "ok"}).
+# Argo Rollouts NEEDS these: it only promotes when preview pods are Ready.
+probes:
+  enabled: true
+  liveness:
+    path: /health
+    initialDelaySeconds: 10
+    periodSeconds: 15
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readiness:
+    path: /health
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
 
 # --- Kong route ------------------------------------------------------------
 # The Ingress tells Kong: "host X → this app's ClusterIP service".

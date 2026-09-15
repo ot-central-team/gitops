@@ -1,8 +1,11 @@
-{{- /* Plain Deployment renders only when NO rollout strategy is configured.
-   When strategy is bluegreen (or canary), rollout.yaml renders instead. */}}
-{{- if or (not .Values.strategy) (eq .Values.strategy "rolling") }}
-apiVersion: apps/v1
-kind: Deployment
+{{- /* Argo Rollouts manifest — rendered ONLY when a rollout strategy is set.
+   The pod spec is identical to deployment.yaml; the only changes are:
+     kind: Rollout  +  spec.strategy.<blueGreen|canary>
+   Argo Rollouts (owned by ArgoCD) manages the rollout — Kong is NOT involved.
+   App values choose the strategy:  strategy: bluegreen | canary             */}}
+{{- if eq .Values.strategy "bluegreen" }}
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 metadata:
   name: {{ include "generic.fullname" . }}
   namespace: {{ .Release.Namespace }}
@@ -87,4 +90,18 @@ spec:
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-{{- end }}   {{/* end: strategy empty/rolling → Deployment */}}
+  strategy:
+    blueGreen:
+      # activeService: name of the Service serving LIVE traffic. Argo Rollouts
+      # rewrites its selector to point at the new RS on promotion.
+      activeService: {{ include "generic.fullname" . }}-service
+      # previewService: name of the Service that only the NEW pods join, so you
+      # can smoke-test them before (or without) promotion.
+      previewService: {{ include "generic.fullname" . }}-preview-service
+      # true: auto-promote once preview pods are Ready. false: wait for a
+      # manual "Promote" click in the Argo Rollouts UI.
+      autoPromotionEnabled: {{ .Values.blueGreen.autoPromotionEnabled | default true }}
+      # Safety net: old RS keeps running this long after promotion so a quick
+      # "Abort" rolls traffic back instantly. Then old pods scale to zero.
+      scaleDownDelaySeconds: {{ .Values.blueGreen.scaleDownDelaySeconds | default 60 }}
+{{- end }}

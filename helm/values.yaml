@@ -12,6 +12,25 @@
 # Default is 1; per-env values files bump per app (dev=2, prod=3, ...).
 replicaCount: 1
 
+# --- Deployment strategy ----------------------------------------------------
+# What owns the rollout of this app's pods:
+#   "" (empty)  -> plain k8s Deployment (in-place, replace pods)  [default]
+#   bluegreen   -> Argo Rollouts blue-green (active + preview, flip on promote)
+#   canary      -> Argo Rollouts canary  (future: weighted traffic split)
+# When a strategy is set, ArgoCD renders a `kind: Rollout` instead of a
+# Deployment, and Argo Rollouts (NOT Kong) owns the rollout logic.
+strategy: ""
+
+# Blue-green knobs (only used when strategy: bluegreen).
+blueGreen:
+  # Automatically promote the preview pods to live traffic once they're
+  # Ready. Set false if you want a manual "Promote" click in the Rollouts UI
+  # after you've smoke-tested the preview service.
+  autoPromotionEnabled: true
+  # Seconds the old (active) ReplicaSet keeps running AFTER promotion,
+  # as an instant-rollback safety net. Then it scales to zero.
+  scaleDownDelaySeconds: 60
+
 # --- Image ----------------------------------------------------------------
 image:
   repository: nginx
