@@ -11,7 +11,7 @@ spec:
     - group: ''
       kind: Namespace
   sourceRepos:
-    - 'https://github.com/asmabadrwork/gitops-manifests.git'
+    - 'https://github.com/ot-central-team/gitops.git'
   destinations:
     - namespace: prod                    # <── Production Namespace!
       server: https://kubernetes.default.svc

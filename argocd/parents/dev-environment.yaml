@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: 'https://github.com/asmabadrwork/gitops-manifests.git'
+    repoURL: 'https://github.com/ot-central-team/gitops.git'
     targetRevision: HEAD
     path: argocd/dev                  # <── Points ONLY to argocd/dev!
   destination:
