@@ -125,20 +125,77 @@ traffic. Install and configure the Gateway API traffic plugin in the Rollouts
 controller before using this mode. Kong's Gateway API support alone is not
 enough.
 
-The chart creates `-service` (stable) and `-canary-service` (canary), and the
+The chart creates `-service` (stable) and `-candidate-service` (candidate), and the
 HTTPRoute contains both backends. Argo Rollouts manages their selectors and
 updates their weights during the rollout. Keep readiness probes enabled and
 use immutable image tags.
 
-`AnalysisTemplate` is not required to split traffic. It is an optional health
-gate: when `analysis.enabled: true`, include an analysis step in the canary
-steps and it probes `-canary-service` directly. It can abort the rollout when
-the canary is unhealthy; the Gateway API plugin handles traffic routing.
+The same `-candidate-service` is used by both strategies. In blue-green it is
+the private preview backend; in canary it is the weighted canary backend. The
+Rollout field remains `previewService` for blue-green because that is the
+official Argo Rollouts field name.
+
+The chart deliberately keeps health checks simple: Kubernetes readiness probes
+decide when new pods can receive traffic. No `AnalysisTemplate` is required.
+
+### Python demo values files
+
+The ApplicationSet currently loads this file:
+
+```text
+applications/dev/python-demo-for-dashboard-values.yaml
+```
+
+Two complete alternatives are provided:
+
+```text
+applications/dev/python-demo-for-dashboard-bluegreen-values.yaml
+applications/dev/python-demo-for-dashboard-canary-values.yaml
+```
+
+Copy the desired alternative over the active `*-values.yaml` file, commit, and
+push. ArgoCD then syncs the selected strategy. Do not load both alternatives
+for the same app, because the ApplicationSet currently has one values-file
+slot for this app.
+
+### End-to-end flow
+
+```mermaid
+flowchart TD
+  A[Git push] --> B[ArgoCD ApplicationSet]
+  B --> C[Helm values.yaml plus app values]
+  C --> D{strategy}
+  D -->|bluegreen| E[rollout.yaml renders Rollout]
+  E --> F[New pods behind candidate Service]
+  F --> G[Readiness passes]
+  G --> H[Argo switches active Service selector]
+  H --> I[Kong HTTPRoute sends traffic to active Service]
+  D -->|canary| J[rollout.yaml renders Rollout]
+  J --> K[Stable and candidate Services]
+  K --> L[Readiness passes]
+  L --> M[Gateway API plugin updates HTTPRoute weights]
+  M --> N[Kong sends 20%, 50%, then 100% traffic]
+```
+
+Template responsibilities:
+
+```text
+rollout.yaml       -> Rollout, pod template, blue-green/canary strategy
+service.yaml       -> stable or active Service
+candidate-service.yaml -> blue-green preview or canary backend Service
+httproute.yaml     -> Kong public route and canary backend weights
+probes             -> decides when new pods are Ready
+```
+
+`pause.duration` only waits before the next canary step. It does not detect
+HTTP errors or automatically roll back. Automatic rollback requires adding an
+Argo Rollouts `AnalysisTemplate` and a metrics provider such as Prometheus.
 
 When a `strategy` is set, the chart renders `kind: Rollout`
-(`argoproj.io/v1alpha1`) instead of a Deployment, plus a `-preview-service`
+(`argoproj.io/v1alpha1`) instead of a Deployment, plus a `-candidate-service`
 for smoke-testing the new version. The **Argo Rollouts controller** (installed
-in the cluster) owns the rollout; Kong is untouched.
+in the cluster) owns the rollout. Kong continues to expose the active Service;
+for canary, the Gateway API plugin also updates the HTTPRoute weights.
 
 - Verify: `kubectl get rollout -n <ns>` → `kubectl argo rollouts get rollout <name> -n <ns>`
 - During a blue‑green update you temporarily run `2× replicas` (active + preview);
@@ -155,7 +212,6 @@ in the cluster) owns the rollout; Kong is untouched.
 | `argocd/dev/dev-appset.yaml` | Generates one child app per listed app name |
 | `helm/values.yaml` | Base chart defaults (image, probes, route, strategy …) |
 | `helm/templates/rollout.yaml` | Blue-green and Kong-routed canary Rollout |
-| `helm/templates/preview-service.yaml` | Preview Service for smoke-testing new pods |
-| `helm/templates/canary-service.yaml` | Canary traffic backend Service |
+| `helm/templates/candidate-service.yaml` | New-version Service for blue-green or canary |
 | `helm/templates/hpa.yaml` | Scales the Deployment **or** the Rollout (conditional) |
 | `applications/dev/python-demo-for-dashboard-values.yaml` | Worked example of a real app's values |

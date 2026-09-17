@@ -28,7 +28,7 @@ spec:
           port: {{ .Values.service.port }}
           {{- if eq .Values.strategy "canary" }}
           weight: 100
-        - name: {{ include "generic.fullname" . }}-canary-service
+        - name: {{ include "generic.fullname" . }}-candidate-service
           port: {{ .Values.service.port }}
           weight: 0
           {{- end }}

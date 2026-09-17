@@ -1,8 +1,8 @@
-{{- if eq .Values.strategy "canary" }}
+{{- if or (eq .Values.strategy "bluegreen") (eq .Values.strategy "canary") }}
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "generic.fullname" . }}-canary-service
+  name: {{ include "generic.fullname" . }}-candidate-service
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "generic.labels" . | nindent 4 }}

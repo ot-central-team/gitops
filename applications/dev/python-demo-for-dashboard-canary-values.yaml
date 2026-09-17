@@ -1,0 +1,51 @@
+# Copy this file's contents into python-demo-for-dashboard-values.yaml
+# when you want the DEV app to use Kong-routed canary delivery.
+
+image:
+  repository: 409178193343.dkr.ecr.us-west-2.amazonaws.com/python-demo-for-dashboard
+  tag: 3965225e5a0f9870b79a981728022adb72760c38
+
+service:
+  port: 80
+  targetPort: 5000
+
+replicaCount: 3
+strategy: canary
+
+canary:
+  steps:
+    - setWeight: 20
+    - pause:
+        duration: 30s
+    - setWeight: 50
+    - pause:
+        duration: 30s
+    - setWeight: 100
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+probes:
+  enabled: true
+  liveness:
+    path: /health
+    initialDelaySeconds: 10
+    periodSeconds: 15
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readiness:
+    path: /health
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+route:
+  enabled: true
+  host: python-demo-for-dashboard-dev.tyagi.fun
+  path: /
