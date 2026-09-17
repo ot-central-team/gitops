@@ -26,7 +26,7 @@ gitops/
 ├── helm/                        ← SHARED chart (generic-microservice)
 │   ├── Chart.yaml
 │   ├── values.yaml              ← base defaults for every app
-│   └── templates/               ← Deployment / Rollout / Service / Ingress …
+│   └── templates/               ← Deployment / Rollout / Service / HTTPRoute …
 └── applications/                ← PER‑APP overrides
     ├── dev/<app>-values.yaml
     └── prod/<app>-values.yaml
@@ -42,7 +42,7 @@ gitops/
 
 ```
 push to gitops → ArgoCD (child app) → helm render (base + app values)
-             → apply Deployment/Rollout + Service + Ingress → pods
+             → apply Deployment/Rollout + Service + HTTPRoute → pods
 ```
 
 ---
@@ -68,7 +68,7 @@ image:
   repository: <ECR repo URL>
   tag: <git-sha>
 replicaCount: 2
-ingress:
+route:
   enabled: true
   host: my-app-dev.tyagi.fun
 probes:
@@ -120,7 +120,7 @@ in the cluster) owns the rollout; Kong is untouched.
 | `argocd/parents/dev-environment.yaml` | Root app: syncs `argocd/dev` into the cluster |
 | `argocd/dev/dev-project.yaml` | RBAC project (which namespaces/sources are allowed) |
 | `argocd/dev/dev-appset.yaml` | Generates one child app per listed app name |
-| `helm/values.yaml` | Base chart defaults (image, probes, ingress, strategy …) |
+| `helm/values.yaml` | Base chart defaults (image, probes, route, strategy …) |
 | `helm/templates/rollout.yaml` | Blue‑green Rollout (only rendered when `strategy: bluegreen`) |
 | `helm/templates/preview-service.yaml` | Preview Service for smoke-testing new pods |
 | `helm/templates/hpa.yaml` | Scales the Deployment **or** the Rollout (conditional) |

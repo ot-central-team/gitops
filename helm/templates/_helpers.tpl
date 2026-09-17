@@ -5,7 +5,7 @@
 # ============================================================================
 
 {{/*
-Base name for deployment/service/sa/hpa/ingress.
+Base name for deployment/service/sa/hpa/httproute.
 Defaults to the RELEASE name (which ArgoCD sets = the Application name,
 e.g. `python-app-prod`). Use fullnameOverride only to rename an app.
 */}}

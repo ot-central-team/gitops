@@ -39,9 +39,9 @@ podDisruptionBudget:
 #   readiness:
 #     path: /healthz
 
-# --- Kong route ------------------------------------------------------------
-# The Ingress tells Kong: "host X → this app's ClusterIP service".
-ingress:
+# --- Kong route (Gateway API / HTTPRoute) ----------------------------------
+# The HTTPRoute tells Kong: "host X → this app's ClusterIP service".
+route:
   enabled: true
   host: python-demo-for-dashboard-prod.tyagi.fun
   path: /

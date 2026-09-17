@@ -1,0 +1,29 @@
+{{- if .Values.route.enabled }}
+# HTTPRoute for this app — the modern Gateway API, implemented by Kong's
+# Ingress Controller. Host-based: add a CNAME `<host> → Kong's LoadBalancer
+# DNS` at your registrar; Kong handles the rest.
+# Requires the Gateway API CRDs (kong/setup.sh installs them).
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ include "generic.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "generic.labels" . | nindent 4 }}
+  annotations:
+    {{- toYaml .Values.route.annotations | nindent 4 }}
+spec:
+  parentRefs:
+    - name: {{ .Values.route.gatewayRef.name | default "kong" }}
+      namespace: {{ .Values.route.gatewayRef.namespace | default "kong" }}
+  hostnames:
+    - {{ .Values.route.host }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: {{ .Values.route.path | default "/" }}
+      backendRefs:
+        - name: {{ include "generic.fullname" . }}-service
+          port: {{ .Values.service.port }}
+{{- end }}

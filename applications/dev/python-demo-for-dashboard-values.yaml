@@ -51,9 +51,9 @@ probes:
     timeoutSeconds: 5
     failureThreshold: 3
 
-# --- Kong route ------------------------------------------------------------
-# The Ingress tells Kong: "host X → this app's ClusterIP service".
-ingress:
+# --- Kong route (Gateway API / HTTPRoute) ----------------------------------
+# The HTTPRoute tells Kong: "host X → this app's ClusterIP service".
+route:
   enabled: true
   host: python-demo-for-dashboard-dev.tyagi.fun
   path: /
