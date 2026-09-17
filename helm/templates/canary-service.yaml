@@ -1,0 +1,18 @@
+{{- if eq .Values.strategy "canary" }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "generic.fullname" . }}-canary-service
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "generic.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    {{- include "generic.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.targetPort }}
+      protocol: TCP
+{{- end }}

@@ -1,9 +1,26 @@
 {{- /* Argo Rollouts manifest — rendered ONLY when a rollout strategy is set.
    The pod spec is identical to deployment.yaml; the only changes are:
      kind: Rollout  +  spec.strategy.<blueGreen|canary>
-   Argo Rollouts (owned by ArgoCD) manages the rollout — Kong is NOT involved.
-   App values choose the strategy:  strategy: bluegreen | canary             */}}
-{{- if eq .Values.strategy "bluegreen" }}
+  Argo Rollouts (owned by ArgoCD) manages the rollout; Kong receives the
+  weighted HTTPRoute updates through the Gateway API traffic plugin.
+   App values choose the strategy:  strategy: bluegreen | canary
+   ----------------------------------------------------------------------------
+   Blue-green:
+     - preview pods join `<app>-preview-service` (NO live traffic), so you can
+       smoke-test them before (or without) promotion.
+     - autoPromotionEnabled: true → auto-promote once Ready (or once
+       prePromotionAnalysis passes). false → wait for the "Promote" click.
+     - analysis.enabled → prePromotionAnalysis blocks promotion until preview
+       passes; postPromotionAnalysis runs after promotion and AUTO-ROLLBACKS
+       on failure (abortScaleDownDelaySeconds).
+   Canary:
+     - stableService and canaryService are managed by Argo Rollouts.
+     - the Gateway API plugin updates the HTTPRoute backend weights for each
+       setWeight step, so weights are request traffic percentages at Kong.
+     - analysis is optional; when enabled it probes the canary Service.
+   Rendered via analysistemplate.yaml (<app>-health) whose AnalysisRun jobs
+   curl the app's health path.                                        */}}
+{{- if or (eq .Values.strategy "bluegreen") (eq .Values.strategy "canary") }}
 apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
@@ -90,18 +107,72 @@ spec:
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+  {{- if eq .Values.strategy "bluegreen" }}
   strategy:
     blueGreen:
-      # activeService: name of the Service serving LIVE traffic. Argo Rollouts
-      # rewrites its selector to point at the new RS on promotion.
+      # activeService: the Service serving LIVE traffic. Argo Rollouts rewrites
+      # its selector to point at the new RS on promotion.
       activeService: {{ include "generic.fullname" . }}-service
-      # previewService: name of the Service that only the NEW pods join, so you
-      # can smoke-test them before (or without) promotion.
+      # previewService: the Service only the NEW pods join, so you can
+      # smoke-test them before (or without) promotion.
       previewService: {{ include "generic.fullname" . }}-preview-service
-      # true: auto-promote once preview pods are Ready. false: wait for a
-      # manual "Promote" click in the Argo Rollouts UI.
+      # true: auto-promote once preview pods are Ready (or their
+      # prePromotionAnalysis passes). false: wait for a manual Promote click
+      # in the Argo Rollouts UI after you've smoke-tested the preview service.
       autoPromotionEnabled: {{ .Values.blueGreen.autoPromotionEnabled | default true }}
       # Safety net: old RS keeps running this long after promotion so a quick
       # "Abort" rolls traffic back instantly. Then old pods scale to zero.
       scaleDownDelaySeconds: {{ .Values.blueGreen.scaleDownDelaySeconds | default 60 }}
+      {{- if .Values.analysis.enabled }}
+      # Gate BEFORE the traffic switch: the AnalysisRun must pass against the
+      # PREVIEW service or promotion is BLOCKED (no user traffic ever sees a
+      # broken build).
+      prePromotionAnalysis:
+        templates:
+          - templateName: {{ include "generic.fullname" . }}-health
+        args:
+          - name: service
+            value: {{ include "ge neric.fullname" . }}-preview-service
+      # Gate AFTER the switch: if the live service regresses, abort and flip
+      # traffic back to the old RS (auto-rollback) after abortScaleDownDelaySeconds.
+      postPromotionAnalysis:
+        templates:
+          - templateName: {{ include "generic.fullname" . }}-health
+        args:
+          - name: service
+            value: {{ include "generic.fullname" . }}-service
+      # Seconds the new (preview) RS survives AFTER an automatic abort
+      # (postPromotionAnalysis failed) before it scales to zero.
+      abortScaleDownDelaySeconds: {{ .Values.blueGreen.abortScaleDownDelaySeconds | default 30 }}
+      {{- end }}
+  {{- else }}
+  strategy:
+    canary:
+      stableService: {{ include "generic.fullname" . }}-service
+      canaryService: {{ include "generic.fullname" . }}-canary-service
+      trafficRouting:
+        plugins:
+          argoproj-labs/gatewayAPI:
+            httpRoute:
+              name: {{ include "generic.fullname" . }}
+              namespace: {{ .Release.Namespace }}
+      {{- /* Explicit step list wins; otherwise render health analysis and
+         pauses between traffic shifts. */}}
+      {{- if .Values.canary.steps }}
+      steps:
+        {{- toYaml .Values.canary.steps | nindent 8 }}
+      {{- else }}
+      steps:
+        {{- if .Values.analysis.enabled }}
+        - analysis:
+            templates:
+              - templateName: {{ include "generic.fullname" . }}-health
+            args:
+              - name: service
+                value: {{ include "generic.fullname" . }}-canary-service
+        {{- end }}
+        - pause:
+            duration: {{ .Values.canary.defaultPauseSeconds }}s
+      {{- end }}
+  {{- end }}
 {{- end }}

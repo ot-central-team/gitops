@@ -16,20 +16,63 @@ replicaCount: 1
 # What owns the rollout of this app's pods:
 #   "" (empty)  -> plain k8s Deployment (in-place, replace pods)  [default]
 #   bluegreen   -> Argo Rollouts blue-green (active + preview, flip on promote)
-#   canary      -> Argo Rollouts canary  (future: weighted traffic split)
+#   canary      -> Argo Rollouts canary with Kong Gateway API weighted traffic
 # When a strategy is set, ArgoCD renders a `kind: Rollout` instead of a
-# Deployment, and Argo Rollouts (NOT Kong) owns the rollout logic.
+# Deployment. For canary, Argo Rollouts updates the Kong HTTPRoute through
+# its Gateway API traffic plugin.
 strategy: ""
 
 # Blue-green knobs (only used when strategy: bluegreen).
 blueGreen:
   # Automatically promote the preview pods to live traffic once they're
-  # Ready. Set false if you want a manual "Promote" click in the Rollouts UI
+  # Ready (or their prePromotionAnalysis passes, if analysis is enabled).
+  # Set false if you want a manual "Promote" click in the Rollouts UI
   # after you've smoke-tested the preview service.
   autoPromotionEnabled: true
   # Seconds the old (active) ReplicaSet keeps running AFTER promotion,
   # as an instant-rollback safety net. Then it scales to zero.
   scaleDownDelaySeconds: 60
+  # Seconds the new ReplicaSet keeps running AFTER an automatic abort
+  # (postPromotionAnalysis failed) before it scales to zero. Rollout
+  # controller flips the active Service back to the old ReplicaSet.
+  abortScaleDownDelaySeconds: 30
+
+# Canary knobs (only used when strategy: canary). Requires the Argo Rollouts
+# Gateway API traffic plugin to be installed in the Rollouts controller.
+canary:
+  # Gateway API traffic is controlled by setWeight steps. For example, 20
+  # sends approximately 20% of Kong requests to the canary backend.
+  # When empty, the chart renders an analysis gate (if enabled) and a pause.
+  # Example override:
+  #   steps:
+  #     - setWeight: 20
+  #     - pause: { duration: 30s }
+  #     - setWeight: 100
+  steps: []
+  # How long the rollout waits (after stepping) before scaling up / promoting.
+  # Ignored if you provide an explicit `steps` list.
+  defaultPauseSeconds: 60
+
+# --- Analysis (AnalysisTemplate) --------------------------------------------
+# Optional automated "switch only if healthy, abort if it regresses" gate.
+# Shared by both strategies:
+#   - bluegreen: prePromotionAnalysis runs against the PREVIEW service BEFORE
+#     any traffic switch; postPromotionAnalysis runs against the live service
+#     AFTER promotion and auto-rollbacks (abortScaleDownDelaySeconds) on fail.
+#   - canary: the analysis step can run against the canary Service before a
+#     traffic step; the traffic plugin itself does not replace this check.
+# Implemented as an Argo Rollouts AnalysisTemplate (<app>-health) whose
+# AnalysisRun checks curl the selected Service directly. It is not required
+# for Kong traffic splitting, but is recommended for automated gates.
+# Set enabled: true + the app's real health path to turn it on.
+analysis:
+  enabled: false                # master switch (renders + wires the gate)
+  interval: 15s                 # how often the check runs during an AnalysisRun
+  count: 3                      # ticks before the AnalysisRun completes
+  failureLimit: 1               # failed checks tolerated before it FAILS (-> abort)
+  successCondition: 'result[0] == 200'
+  http:
+    path: /health               # health path to probe (match probes.readiness.path)
 
 # --- Image ----------------------------------------------------------------
 image:

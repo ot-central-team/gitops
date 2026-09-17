@@ -90,7 +90,7 @@ DNS CNAME (see parent `README.md` §"Adding a new app").
 |-------------------|------------------------------------------------------|
 | `""` (default)    | plain Kubernetes `Deployment` (in-place, rolling)    |
 | `bluegreen`       | Argo Rollouts — active + preview ReplicaSets, flip on promote |
-| `canary`          | (future) Argo Rollouts + Kong weighted traffic split |
+| `canary`          | Argo Rollouts + Kong HTTPRoute weighted traffic split |
 
 Set it in an app's values file:
 
@@ -101,6 +101,39 @@ blueGreen:
   autoPromotionEnabled: true
   scaleDownDelaySeconds: 60
 ```
+
+For a Kong traffic canary, configure the app like this:
+
+```yaml
+strategy: canary
+replicaCount: 3
+canary:
+  steps:
+    - setWeight: 20
+    - pause:
+        duration: 30s
+    - setWeight: 50
+    - pause:
+        duration: 30s
+    - setWeight: 100
+```
+
+`setWeight: 20` asks the Argo Rollouts Gateway API plugin to update the
+Kong-managed `HTTPRoute` so approximately 20% of new requests use the
+canary Service. The pause is an observation window; it does not itself shift
+traffic. Install and configure the Gateway API traffic plugin in the Rollouts
+controller before using this mode. Kong's Gateway API support alone is not
+enough.
+
+The chart creates `-service` (stable) and `-canary-service` (canary), and the
+HTTPRoute contains both backends. Argo Rollouts manages their selectors and
+updates their weights during the rollout. Keep readiness probes enabled and
+use immutable image tags.
+
+`AnalysisTemplate` is not required to split traffic. It is an optional health
+gate: when `analysis.enabled: true`, include an analysis step in the canary
+steps and it probes `-canary-service` directly. It can abort the rollout when
+the canary is unhealthy; the Gateway API plugin handles traffic routing.
 
 When a `strategy` is set, the chart renders `kind: Rollout`
 (`argoproj.io/v1alpha1`) instead of a Deployment, plus a `-preview-service`
@@ -121,7 +154,8 @@ in the cluster) owns the rollout; Kong is untouched.
 | `argocd/dev/dev-project.yaml` | RBAC project (which namespaces/sources are allowed) |
 | `argocd/dev/dev-appset.yaml` | Generates one child app per listed app name |
 | `helm/values.yaml` | Base chart defaults (image, probes, route, strategy …) |
-| `helm/templates/rollout.yaml` | Blue‑green Rollout (only rendered when `strategy: bluegreen`) |
+| `helm/templates/rollout.yaml` | Blue-green and Kong-routed canary Rollout |
 | `helm/templates/preview-service.yaml` | Preview Service for smoke-testing new pods |
+| `helm/templates/canary-service.yaml` | Canary traffic backend Service |
 | `helm/templates/hpa.yaml` | Scales the Deployment **or** the Rollout (conditional) |
 | `applications/dev/python-demo-for-dashboard-values.yaml` | Worked example of a real app's values |

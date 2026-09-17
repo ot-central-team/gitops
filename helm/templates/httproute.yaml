@@ -26,4 +26,10 @@ spec:
       backendRefs:
         - name: {{ include "generic.fullname" . }}-service
           port: {{ .Values.service.port }}
+          {{- if eq .Values.strategy "canary" }}
+          weight: 100
+        - name: {{ include "generic.fullname" . }}-canary-service
+          port: {{ .Values.service.port }}
+          weight: 0
+          {{- end }}
 {{- end }}

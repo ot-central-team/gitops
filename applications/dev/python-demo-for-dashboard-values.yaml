@@ -17,7 +17,7 @@ replicaCount: 2
 
 # --- Deployment strategy ----------------------------------------------------
 # bluegreen → Argo Rollouts owns the rollout (active + preview ReplicaSets).
-# ArgoCD renders a Rollout + preview Service; Kong is unaffected.
+# For canary, use the Gateway API plugin configuration documented in gitops/README.md.
 strategy: bluegreen
 
 # Blue-green knobs (only used while strategy: bluegreen above)
