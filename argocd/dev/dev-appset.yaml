@@ -18,8 +18,8 @@ spec:
     spec:
       project: dev-project
       source:
-        repoURL: 'git@github.com:ot-central-team/gitops.git'
-        targetRevision: main
+        repoURL: 'https://github.com/ot-central-team/gitops.git'
+        targetRevision: HEAD
         path: helm
         helm:
           valueFiles:
