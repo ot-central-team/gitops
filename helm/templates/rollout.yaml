@@ -108,9 +108,8 @@ spec:
       trafficRouting:
         plugins:
           argoproj-labs/gatewayAPI:
-            httpRoute:
-              name: {{ include "generic.fullname" . }}
-              namespace: {{ .Release.Namespace }}
+            httpRoute: {{ include "generic.fullname" . }}
+            namespace: {{ .Release.Namespace }}
       {{- /* Explicit traffic steps win; otherwise use one pause. */}}
       {{- if .Values.canary.steps }}
       steps:
