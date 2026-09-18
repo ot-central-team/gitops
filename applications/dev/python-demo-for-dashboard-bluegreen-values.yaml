@@ -9,7 +9,10 @@ service:
   port: 80
   targetPort: 5000
 
-replicaCount: 2
+replicaCount: 2ComparisonError
+Failed to load target state: failed to generate manifest for source 1 of 1: rpc error: code = Unknown desc = failed to list refs: error creating SSH agent: "SSH agent requested but SSH_AUTH_SOCK not-specified"
+a few seconds ago (Fri Sep 18 2026 15:29:27 GMT+0530)
+
 strategy: bluegreen
 
 blueGreen:
