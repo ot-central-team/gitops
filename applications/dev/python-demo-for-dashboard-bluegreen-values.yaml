@@ -44,5 +44,5 @@ probes:
 
 route:
   enabled: true
-  host: python-demo-for-dashboard-dev.tyagi.fun
+  host: python-demo-for-dashboard-bluegreen-dev.tyagi.fun
   path: /

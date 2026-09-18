@@ -3,7 +3,7 @@
 
 image:
   repository: 409178193343.dkr.ecr.us-west-2.amazonaws.com/python-demo-for-dashboard
-  tag: 3965225e5a0f9870b79a981728022adb72760c38
+  tag: e38ba9f9d99d6303182654a00203a6c1cfcea4c7
 
 service:
   port: 80
@@ -47,5 +47,5 @@ probes:
 
 route:
   enabled: true
-  host: python-demo-for-dashboard-dev.tyagi.fun
+  host: python-demo-for-dashboard-canary-dev.tyagi.fun
   path: /
