@@ -3,7 +3,7 @@
 
 image:
   repository: 409178193343.dkr.ecr.us-west-2.amazonaws.com/python-demo-for-dashboard
-  tag: demo
+  tag: e38ba9f9d99d6303182654a00203a6c1cfcea4c7
 
 service:
   port: 80
