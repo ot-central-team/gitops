@@ -7,7 +7,7 @@
 # --- What app this is ------------------------------------------------------
 image:
   repository: 409178193343.dkr.ecr.us-west-2.amazonaws.com/python-demo-for-dashboard
-  tag: e38ba9f9d99d6303182654a00203a6c1cfcea4c7
+  tag: demos
 service:
   port: 80               # the port Kong connects to
   targetPort: 5000       # the port the app listens on inside the container
