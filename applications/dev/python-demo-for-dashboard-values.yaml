@@ -16,14 +16,14 @@ service:
 replicaCount: 2
 
 # --- Deployment strategy ----------------------------------------------------
-# bluegreen → Argo Rollouts owns the rollout (active + preview ReplicaSets).
-# For canary, use the Gateway API plugin configuration documented in gitops/README.md.
-strategy: bluegreen
+# Empty strategy uses a standard Kubernetes Deployment.
+# Set bluegreen or canary only after Argo Rollouts is intentionally enabled.
+strategy: ""
 
-# Blue-green knobs (only used while strategy: bluegreen above)
+# These knobs are ignored while using a standard Deployment.
 blueGreen:
-  autoPromotionEnabled: true   # promote automatically once preview pods are Ready
-  scaleDownDelaySeconds: 60    # keep old pods 60s after promotion (rollback window)
+  autoPromotionEnabled: true
+  scaleDownDelaySeconds: 60
 
 resources:
   requests:
