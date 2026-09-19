@@ -9,8 +9,8 @@ spec:
   generators:
     - list:
         elements:
-          - app: python-demo-for-dashboard
-          # - app: python-demo-for-dashboard-bluegreen
+          # - app: python-demo-for-dashboard
+          - app: python-demo-for-dashboard-bluegreen
           # - app: python-demo-for-dashboard-canary
   template:
     metadata:
