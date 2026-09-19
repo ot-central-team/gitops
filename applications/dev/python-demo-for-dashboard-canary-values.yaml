@@ -3,7 +3,7 @@
 
 image:
   repository: 409178193343.dkr.ecr.us-west-2.amazonaws.com/python-demo-for-dashboard
-  tag: e38ba9f9d99d6303182654a00203a6c1cfcea4c7
+  tag: cfed3dde5d3966efcf6909e02cc1eccd86015130
 
 service:
   port: 80
@@ -16,10 +16,10 @@ canary:
   steps:
     - setWeight: 20
     - pause:
-        duration: 30s
+        duration: 5s
     - setWeight: 50
     - pause:
-        duration: 30s
+        duration: 10s
     - setWeight: 100
 
 resources:
