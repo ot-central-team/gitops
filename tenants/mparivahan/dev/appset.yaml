@@ -15,7 +15,7 @@ spec:
           - path: values/mparivahan/dev/*-values.yaml
   template:
     metadata:
-      name: 'mparivahan-dev-{{trimSuffix "-values" .path.basename}}'
+      name: 'mparivahan-dev-{{trimSuffix "-values.yaml" .path.filename}}'
     spec:
       project: mparivahan-dev-project
       source:
@@ -26,7 +26,7 @@ spec:
           valueFiles:
             - values.yaml
             - ../values/mparivahan/_tenant-defaults.yaml
-            - ../{{.path.path}}
+            - ../{{.path.path}}/{{.path.filename}}
       destination:
         server: https://kubernetes.default.svc
         namespace: mparivahan-dev

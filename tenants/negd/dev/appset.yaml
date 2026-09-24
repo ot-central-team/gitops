@@ -15,7 +15,7 @@ spec:
           - path: values/negd/dev/*-values.yaml
   template:
     metadata:
-      name: 'negd-dev-{{trimSuffix "-values" .path.basename}}'
+      name: 'negd-dev-{{trimSuffix "-values.yaml" .path.filename}}'
     spec:
       project: negd-dev-project
       source:
@@ -26,7 +26,7 @@ spec:
           valueFiles:
             - values.yaml
             - ../values/negd/_tenant-defaults.yaml
-            - ../{{.path.path}}
+            - ../{{.path.path}}/{{.path.filename}}
       destination:
         server: https://kubernetes.default.svc
         namespace: negd-dev
