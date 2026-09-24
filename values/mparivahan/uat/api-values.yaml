@@ -1,28 +1,12 @@
-# Copy this file's contents into python-demo-for-dashboard-values.yaml
-# when you want the DEV app to use blue-green delivery.
-
+# mparivahan / UAT — mirrors prod sizing, own namespace
 image:
   repository: 409178193343.dkr.ecr.us-west-2.amazonaws.com/python-demo-for-dashboard
-  tag: e38ba9f9d99d6303182654a00203a6c1cfcea4c7
-
+  tag: cfed3dde5d3966efcf6909e02cc1eccd86015130
 service:
   port: 80
   targetPort: 5000
-
-strategy: bluegreen
-
-blueGreen:
-  autoPromotionEnabled: true
-  scaleDownDelaySeconds: 60
-
-resources:
-  requests:
-    cpu: 100m
-    memory: 128Mi
-  limits:
-    cpu: 500m
-    memory: 256Mi
-
+replicaCount: 2
+strategy: ""
 probes:
   enabled: true
   liveness:
@@ -37,8 +21,7 @@ probes:
     periodSeconds: 10
     timeoutSeconds: 5
     failureThreshold: 3
-
 route:
   enabled: true
-  host: python-demo-for-dashboard-bluegreen-dev.tyagi.fun
+  host: api-uat.mparivahan.tyagi.fun
   path: /

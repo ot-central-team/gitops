@@ -1,0 +1,36 @@
+# negd / PROD — promote SHA from dev/uat, never latest
+image:
+  repository: 409178193343.dkr.ecr.us-west-2.amazonaws.com/python-demo-for-dashboard
+  tag: cfed3dde5d3966efcf6909e02cc1eccd86015130
+service:
+  port: 80
+  targetPort: 5000
+replicaCount: 3
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 1
+    memory: 512Mi
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+probes:
+  enabled: true
+  liveness:
+    path: /health
+    initialDelaySeconds: 10
+    periodSeconds: 15
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readiness:
+    path: /health
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+route:
+  enabled: true
+  host: api-prod.negd.tyagi.fun
+  path: /

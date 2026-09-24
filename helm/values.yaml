@@ -2,8 +2,10 @@
 # generic-microservice chart — BASE VALUES (shared defaults across ALL apps)
 #
 # Each app/environment overrides these via Helm value merging —
-# ArgoCD's ApplicationSet feeds this file first, then:
-#   ../applications/<env>/<app>-values.yaml
+# ArgoCD's ApplicationSet feeds this file first, then the tenant middle layer,
+# then the app file (later wins):
+#   values.yaml → ../values/<tenant>/_tenant-defaults.yaml
+#             → ../values/<tenant>/<env>/<app>-values.yaml
 # Example: dev sets replicaCount: 2, prod sets 3. That per-file override is
 # the intended place for environment-specific differences (scaling, etc.).
 # ============================================================================

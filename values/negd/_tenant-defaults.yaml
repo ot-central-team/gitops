@@ -1,0 +1,9 @@
+# negd tenant defaults — MIDDLE layer, auto-merged by every negd AppSet:
+#   helm/values.yaml (base) → values/negd/_tenant-defaults.yaml (this file)
+#   → values/negd/<env>/<app>-values.yaml (app wins).
+# Put anything shared by ALL negd apps here (e.g. route annotations, resources).
+tenant: negd
+domainSuffix: negd.tyagi.fun   # hosts become <app>-<env>.negd.tyagi.fun
+ecrBase: 409178193343.dkr.ecr.us-west-2.amazonaws.com
+clusterServer: https://kubernetes.default.svc
+# namespace pattern for this tenant: negd-<env>  (e.g. negd-dev)

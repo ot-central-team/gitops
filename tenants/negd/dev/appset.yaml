@@ -1,0 +1,38 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: negd-dev
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  goTemplate: true
+  generators:
+    - git:
+        repoURL: 'https://github.com/ot-central-team/gitops.git'
+        revision: HEAD
+        files:
+          - path: values/negd/dev/*-values.yaml
+  template:
+    metadata:
+      name: 'negd-dev-{{trimSuffix "-values" .path.basename}}'
+    spec:
+      project: negd-dev-project
+      source:
+        repoURL: 'https://github.com/ot-central-team/gitops.git'
+        targetRevision: HEAD
+        path: helm
+        helm:
+          valueFiles:
+            - values.yaml
+            - ../values/negd/_tenant-defaults.yaml
+            - ../{{.path.path}}
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: negd-dev
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

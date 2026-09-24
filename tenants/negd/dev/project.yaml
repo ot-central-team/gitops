@@ -1,0 +1,19 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: negd-dev-project
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  description: negd DEV isolation boundary
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+  sourceRepos:
+    - 'https://github.com/ot-central-team/gitops.git'
+  destinations:
+    - namespace: negd-dev
+      server: https://kubernetes.default.svc
+    - namespace: argocd
+      server: https://kubernetes.default.svc

@@ -1,35 +1,21 @@
-# Copy this file's contents into python-demo-for-dashboard-values.yaml
-# when you want the DEV app to use Kong-routed canary delivery.
-
+# mparivahan / PROD — promote SHA from dev/uat, never latest
 image:
   repository: 409178193343.dkr.ecr.us-west-2.amazonaws.com/python-demo-for-dashboard
   tag: cfed3dde5d3966efcf6909e02cc1eccd86015130
-
 service:
   port: 80
   targetPort: 5000
-
 replicaCount: 3
-strategy: canary
-
-canary:
-  steps:
-    - setWeight: 20
-    - pause:
-        duration: 5s
-    - setWeight: 50
-    - pause:
-        duration: 10s
-    - setWeight: 100
-
 resources:
   requests:
-    cpu: 100m
-    memory: 128Mi
-  limits:
-    cpu: 500m
+    cpu: 250m
     memory: 256Mi
-
+  limits:
+    cpu: 1
+    memory: 512Mi
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
 probes:
   enabled: true
   liveness:
@@ -44,8 +30,7 @@ probes:
     periodSeconds: 10
     timeoutSeconds: 5
     failureThreshold: 3
-
 route:
   enabled: true
-  host: python-demo-for-dashboard-canary-dev.tyagi.fun
+  host: api-prod.mparivahan.tyagi.fun
   path: /

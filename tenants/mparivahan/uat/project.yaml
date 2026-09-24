@@ -1,21 +1,19 @@
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
-  name: dev-project
+  name: mparivahan-uat-project
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "0"  # <── Wave 0
+    argocd.argoproj.io/sync-wave: "0"
 spec:
-  description: Dev Environment Security Boundary
-  # ALLOW Argo CD to create Namespaces automatically!
+  description: mparivahan UAT isolation boundary
   clusterResourceWhitelist:
     - group: ''
       kind: Namespace
-      
   sourceRepos:
     - 'https://github.com/ot-central-team/gitops.git'
   destinations:
-    - namespace: dev
+    - namespace: mparivahan-uat
       server: https://kubernetes.default.svc
     - namespace: argocd
       server: https://kubernetes.default.svc

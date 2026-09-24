@@ -1,0 +1,9 @@
+# mparivahan tenant defaults — MIDDLE layer, auto-merged by every mparivahan AppSet:
+#   helm/values.yaml (base) → values/mparivahan/_tenant-defaults.yaml (this file)
+#   → values/mparivahan/<env>/<app>-values.yaml (app wins).
+# Put anything shared by ALL mparivahan apps here (e.g. route annotations, resources).
+tenant: mparivahan
+domainSuffix: mparivahan.tyagi.fun   # hosts become <app>-<env>.mparivahan.tyagi.fun
+ecrBase: 409178193343.dkr.ecr.us-west-2.amazonaws.com
+clusterServer: https://kubernetes.default.svc
+# namespace pattern for this tenant: mparivahan-<env>  (e.g. mparivahan-dev)

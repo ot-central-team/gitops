@@ -1,0 +1,38 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: mparivahan-prod
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  goTemplate: true
+  generators:
+    - git:
+        repoURL: 'https://github.com/ot-central-team/gitops.git'
+        revision: HEAD
+        files:
+          - path: values/mparivahan/prod/*-values.yaml
+  template:
+    metadata:
+      name: 'mparivahan-prod-{{trimSuffix "-values" .path.basename}}'
+    spec:
+      project: mparivahan-prod-project
+      source:
+        repoURL: 'https://github.com/ot-central-team/gitops.git'
+        targetRevision: HEAD
+        path: helm
+        helm:
+          valueFiles:
+            - values.yaml
+            - ../values/mparivahan/_tenant-defaults.yaml
+            - ../{{.path.path}}
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: mparivahan-prod
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

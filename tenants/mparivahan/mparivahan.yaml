@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mparivahan-root
+  namespace: argocd
+spec:
+  project: default
+  sources:
+    - repoURL: 'https://github.com/ot-central-team/gitops.git'
+      targetRevision: HEAD
+      path: tenants/mparivahan/dev
+    - repoURL: 'https://github.com/ot-central-team/gitops.git'
+      targetRevision: HEAD
+      path: tenants/mparivahan/uat
+    - repoURL: 'https://github.com/ot-central-team/gitops.git'
+      targetRevision: HEAD
+      path: tenants/mparivahan/prod
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

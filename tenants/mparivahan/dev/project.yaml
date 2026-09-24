@@ -1,19 +1,19 @@
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
-  name: prod-project
+  name: mparivahan-dev-project
   namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "0"
 spec:
-  description: Production Environment Security Boundary
+  description: mparivahan DEV isolation boundary
   clusterResourceWhitelist:
     - group: ''
       kind: Namespace
   sourceRepos:
-    - 'git@github.com:ot-central-team/gitops.git'
+    - 'https://github.com/ot-central-team/gitops.git'
   destinations:
-    - namespace: prod                    # <── Production Namespace!
+    - namespace: mparivahan-dev
       server: https://kubernetes.default.svc
     - namespace: argocd
       server: https://kubernetes.default.svc
