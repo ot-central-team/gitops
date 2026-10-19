@@ -143,14 +143,16 @@ autoscaling:
 # wildcard ACM cert (*.opstree.dev), attached in route.annotations below.
 route:
   enabled: false
-  host: myapp.example.com   # <-- set per app, e.g. api-dev.negd.opstree.dev
+  host: myapp.example.com   # <-- set per app: <app>.opstree.dev in prod,
+                            #     <app>-<env>.opstree.dev in dev/uat (no tenant)
   path: /
   ingressClassName: alb
   # House defaults: every app joins the shared negd-dev-alb ALB with the org
   # wildcard ACM cert (*.opstree.dev). Override per app only when it needs
   # something different (e.g. its own ALB group or custom health checks).
-  # NOTE: hosts must be on opstree.dev. A tyagi.fun host is NOT covered by
-  # the org wildcard cert and its TLS would fail.
+  # NOTE: hosts must be on opstree.dev (prod: <app>.opstree.dev,
+  # dev/uat: <app>-<env>.opstree.dev, no tenant segment). A tyagi.fun host is
+  # NOT covered by the org wildcard cert and its TLS would fail.
   annotations:
     alb.ingress.kubernetes.io/group.name: negd-dev-alb
     alb.ingress.kubernetes.io/scheme: internet-facing
