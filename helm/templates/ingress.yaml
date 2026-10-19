@@ -29,7 +29,16 @@ spec:
             pathType: Prefix
             backend:
               service:
+                # Must equal canary.stableService: Rollouts injects
+                # alb.ingress.kubernetes.io/actions.<this-name> carrying the
+                # canary/stable weights for this Ingress.
                 name: {{ include "generic.fullname" . }}-service
                 port:
+                  {{- if eq .Values.strategy "canary" }}
+                  # use-annotation: the AWS LB Controller reads routing from
+                  # the actions annotation that Argo Rollouts manages.
+                  name: use-annotation
+                  {{- else }}
                   number: {{ .Values.service.port }}
+                  {{- end }}
 {{- end }}

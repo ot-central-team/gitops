@@ -1,6 +1,11 @@
-{{- /* Argo Rollouts manifest. Blue-green switches the Kong-facing Service
-   selector on promotion. Canary updates the Kong HTTPRoute weights through
-   the Gateway API traffic plugin. */}}
+{{- /* Argo Rollouts manifest.
+   Blue-green: flips the active Service selector on promotion. Service-based,
+   works with the ALB as-is, no traffic routing needed.
+   Canary: ALB traffic routing. The Rollouts controller injects
+   alb.ingress.kubernetes.io/actions.<stable-service> into the app's Ingress
+   and shifts the canary/stable weights there as steps progress; the AWS LB
+   Controller reconciles them into real target groups. No Gateway API
+   provider needed. */}}
 {{- if or (eq .Values.strategy "bluegreen") (eq .Values.strategy "canary") }}
 apiVersion: argoproj.io/v1alpha1
 kind: Rollout
@@ -105,11 +110,13 @@ spec:
     canary:
       stableService: {{ include "generic.fullname" . }}-service
       canaryService: {{ include "generic.fullname" . }}-candidate-service
+      # ALB traffic routing: Rollouts writes the canary/stable weights into
+      # the app's Ingress actions annotation (see ingress.yaml). servicePort
+      # must match service.port. Verified against the Rollouts ALB docs.
       trafficRouting:
-        plugins:
-          argoproj-labs/gatewayAPI:
-            httpRoute: {{ include "generic.fullname" . }}
-            namespace: {{ .Release.Namespace }}
+        alb:
+          ingress: {{ include "generic.fullname" . }}
+          servicePort: {{ .Values.service.port }}
       {{- /* Explicit traffic steps win; otherwise use one pause. */}}
       {{- if .Values.canary.steps }}
       steps:

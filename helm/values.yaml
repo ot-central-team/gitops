@@ -18,8 +18,9 @@ replicaCount: 1
 # What owns the rollout of this app's pods:
 #   "" (empty)  -> plain k8s Deployment (in-place, replace pods)  [default]
 #   bluegreen   -> Argo Rollouts blue-green (active + preview, flip on promote)
-#   canary      -> NOT usable yet: built for Kong Gateway API traffic splitting,
-#                  and there is no Kong in this cluster. Needs an ALB rework.
+#   canary      -> Argo Rollouts canary with ALB traffic splitting (Rollouts
+#                  shifts canary/stable weights on the app's Ingress; the
+#                  AWS LB Controller reconciles them into target groups).
 # When a strategy is set, ArgoCD renders a `kind: Rollout` instead of a
 # Deployment.
 strategy: ""
@@ -35,12 +36,16 @@ blueGreen:
   # as an instant-rollback safety net. Then it scales to zero.
   scaleDownDelaySeconds: 60
 
-# Canary knobs (only used when strategy: canary). Currently unusable: the
-# canary path was built for Kong's Gateway API traffic plugin, which does
-# not exist in this cluster.
+# Canary knobs (only used when strategy: canary). Traffic is split by the
+# ALB: Rollouts writes the weights into the app's Ingress actions annotation
+# (alb.ingress.kubernetes.io/actions.<stable-service>).
+# NOTE: ArgoCD must ignore the Rollouts-managed Ingress annotations or
+# self-heal fights the controller mid-canary. The ApplicationSets already
+# carry ignoreDifferences for them (managedFieldsManagers: argo-rollouts).
+# Confirm on the first live canary that weights move cleanly.
 canary:
-  # Gateway API traffic is controlled by setWeight steps. For example, 20
-  # sends approximately 20% of requests to the canary backend.
+  # setWeight steps shift traffic. For example, 20 sends ~20% of requests
+  # to the canary backend.
   # When empty, the chart renders one pause.
   # Example override:
   #   steps:

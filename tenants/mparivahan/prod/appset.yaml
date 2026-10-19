@@ -36,3 +36,15 @@ spec:
           selfHeal: true
         syncOptions:
           - CreateNamespace=true
+      ignoreDifferences:
+        # Argo Rollouts injects and continuously rewrites Ingress annotations
+        # during canary (alb.ingress.kubernetes.io/actions.* carrying the
+        # weights, plus its bookkeeping annotation). Without this, ArgoCD
+        # self-heal reverts them mid-canary and the weights flap.
+        # If weights still flap on the first live canary, confirm the field
+        # manager name:
+        #   kubectl get ingress <name> -o jsonpath='{.metadata.managedFields[*].manager}'
+        - group: networking.k8s.io
+          kind: Ingress
+          managedFieldsManagers:
+            - argo-rollouts
