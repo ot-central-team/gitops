@@ -48,7 +48,7 @@ push values/.../api-values.yaml → AppSet → child app → helm render → pod
 
 ```bash
 # new app in existing env — add values file, push, done:
-# values/mparivahan/dev/worker-values.yaml  (route.host: worker-dev.mparivahan.tyagi.fun)
+# values/mparivahan/dev/worker-values.yaml  (route.host: worker-dev.opstree.dev)
 git add values/mparivahan/dev/worker-values.yaml
 git commit -m "mparivahan/dev: add worker" && git push
 # → AppSet auto-creates mparivahan-dev-worker in ns mparivahan-dev
@@ -59,7 +59,7 @@ git commit -m "mparivahan/dev: add worker" && git push
 ```
 
 Naming: namespace = `<tenant>-<env>`, values file = `<app>-values.yaml`,
-host = `<app>-<env>.<tenant>.opstree.dev` (must be opstree.dev: the org wildcard ACM cert does not cover tyagi.fun), tag = immutable SHA (never `latest`).
+host = `<app>.opstree.dev` in prod, `<app>-<env>.opstree.dev` in dev/uat (no tenant segment; must be opstree.dev for the wildcard ACM cert), tag = immutable SHA (never `latest`).
 
 ## Bootstrap / verify
 
