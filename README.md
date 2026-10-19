@@ -59,7 +59,7 @@ git commit -m "mparivahan/dev: add worker" && git push
 ```
 
 Naming: namespace = `<tenant>-<env>`, values file = `<app>-values.yaml`,
-host = `<app>-<env>.<tenant>.tyagi.fun`, tag = immutable SHA (never `latest`).
+host = `<app>-<env>.<tenant>.opstree.dev` (must be opstree.dev: the org wildcard ACM cert does not cover tyagi.fun), tag = immutable SHA (never `latest`).
 
 ## Bootstrap / verify
 
