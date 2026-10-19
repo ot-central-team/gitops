@@ -1,7 +1,7 @@
 # ============================================================================
 # generic-microservice chart — BASE VALUES (shared defaults across ALL apps)
 #
-# Each app/environment overrides these via Helm value merging —
+# Each app/environment overrides these via Helm value merging:
 # ArgoCD's ApplicationSet feeds this file first, then the tenant middle layer,
 # then the app file (later wins):
 #   values.yaml → ../values/<tenant>/_tenant-defaults.yaml
@@ -18,10 +18,10 @@ replicaCount: 1
 # What owns the rollout of this app's pods:
 #   "" (empty)  -> plain k8s Deployment (in-place, replace pods)  [default]
 #   bluegreen   -> Argo Rollouts blue-green (active + preview, flip on promote)
-#   canary      -> Argo Rollouts canary with Kong Gateway API weighted traffic
+#   canary      -> NOT usable yet: built for Kong Gateway API traffic splitting,
+#                  and there is no Kong in this cluster. Needs an ALB rework.
 # When a strategy is set, ArgoCD renders a `kind: Rollout` instead of a
-# Deployment. For canary, Argo Rollouts updates the Kong HTTPRoute through
-# its Gateway API traffic plugin.
+# Deployment.
 strategy: ""
 
 # Blue-green knobs (only used when strategy: bluegreen).
@@ -35,11 +35,12 @@ blueGreen:
   # as an instant-rollback safety net. Then it scales to zero.
   scaleDownDelaySeconds: 60
 
-# Canary knobs (only used when strategy: canary). Requires the Argo Rollouts
-# Gateway API traffic plugin to be installed in the Rollouts controller.
+# Canary knobs (only used when strategy: canary). Currently unusable: the
+# canary path was built for Kong's Gateway API traffic plugin, which does
+# not exist in this cluster.
 canary:
   # Gateway API traffic is controlled by setWeight steps. For example, 20
-  # sends approximately 20% of Kong requests to the canary backend.
+  # sends approximately 20% of requests to the canary backend.
   # When empty, the chart renders one pause.
   # Example override:
   #   steps:
@@ -62,10 +63,10 @@ image:
   pullPolicy: Always
 
 # --- Service ---------------------------------------------------------------
-# ClusterIP is intentional: Kong is the only thing that talks to apps.
+# ClusterIP is intentional: only the ALB talks to apps, never clients directly.
 service:
   type: ClusterIP
-  port: 80            # the port Kong connects to
+  port: 80            # the port the ALB forwards to
   targetPort: 8080    # the port your app actually listens on in the container
 
 # --- Rendering knobs -------------------------------------------------------
@@ -133,20 +134,26 @@ autoscaling:
   targetCPUUtilizationPercentage: 70
   # targetMemoryUtilizationPercentage: 80   # optional second metric
 
-# --- Kong route (Gateway API / HTTPRoute) ----------------------------------
-# ON per app to expose it: set host, apply, add a CNAME at your registrar.
-# The modern Gateway API (HTTPRoute), implemented by Kong — no classic Ingress.
-# The parentRefs point at the Kong Gateway object created in kong/route.yml.
+# --- App ingress (AWS ALB) ---------------------------------------------------
+# ON per app to expose it: set host, apply, add the DNS record for the host.
+# Served by the AWS Load Balancer Controller (ingressClassName: alb).
+# There is no Kong gateway in this cluster.
+# TLS terminates at the ALB and the certificate is auto-provisioned as a
+# kubernetes.io/tls secret in the app's namespace. Set route.tlsSecretName
+# per app and put the provisioning annotation (the same one backstage-poc
+# uses) in route.annotations.
 route:
   enabled: false
-  host: myapp.example.com   # <-- set per app, e.g. myapp-prod.tyagi.fun
+  host: myapp.example.com   # <-- set per app, e.g. api-dev.negd.tyagi.fun
   path: /
-  gatewayRef:
-    name: kong                  # Gateway object from kong/route.yml
-    namespace: kong
-  # Kong plugins/annotations go here, e.g.:
-  #   konghq.com/rate-limiting: '{"minute":60}'
+  ingressClassName: alb
+  tlsSecretName: ""         # <-- set per app, e.g. api-dev-tls (auto-created)
+  # Annotations applied to the Ingress, e.g. the cert auto-fetch annotation.
   annotations: {}
+  # Gateway API HTTPRoute (Kong) stays OFF: no Kong gateway exists here.
+  # Kept only for a future Gateway API provider. Do not enable as-is.
+  httpRoute:
+    enabled: false
 
 # --- ServiceAccount / image pull -------------------------------------------
 # One SA per app by default — later you can attach IRSA (role-arn annotation)
@@ -159,7 +166,7 @@ imagePullSecrets: []
 
 # --- Hardening -------------------------------------------------------------
 # Safe defaults: drop Linux capabilities, block privilege escalation.
-# The pod still runs as the image's own user — forcing a UID here would
+# The pod still runs as the image's own user; forcing a UID here would
 # break images built to run as root, so do that per-app when you control it.
 securityContext:
   allowPrivilegeEscalation: false
