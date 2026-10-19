@@ -138,17 +138,20 @@ autoscaling:
 # ON per app to expose it: set host, apply, add the DNS record for the host.
 # Served by the AWS Load Balancer Controller (ingressClassName: alb).
 # There is no Kong gateway in this cluster.
-# TLS terminates at the ALB and the certificate is auto-provisioned as a
-# kubernetes.io/tls secret in the app's namespace. Set route.tlsSecretName
-# per app and put the provisioning annotation (the same one backstage-poc
-# uses) in route.annotations.
+#
+# TLS: the ALB ignores Kubernetes TLS secrets. It terminates with an ACM
+# certificate, taken either from the alb.ingress.kubernetes.io/certificate-arn
+# annotation below, or automatically via the controller's certificate discovery
+# (it matches an ACM cert to the ingress hostname, nothing to configure).
 route:
   enabled: false
   host: myapp.example.com   # <-- set per app, e.g. api-dev.negd.tyagi.fun
   path: /
   ingressClassName: alb
-  tlsSecretName: ""         # <-- set per app, e.g. api-dev-tls (auto-created)
-  # Annotations applied to the Ingress, e.g. the cert auto-fetch annotation.
+  # Annotations applied to the Ingress, e.g.:
+  #   alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-south-1:123456789012:certificate/abc
+  #   alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+  #   alb.ingress.kubernetes.io/ssl-redirect: "443"
   annotations: {}
   # Gateway API HTTPRoute (Kong) stays OFF: no Kong gateway exists here.
   # Kept only for a future Gateway API provider. Do not enable as-is.
