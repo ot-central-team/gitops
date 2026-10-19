@@ -1,8 +1,7 @@
-{{- if .Values.route.enabled }}
-# HTTPRoute for this app — the modern Gateway API, implemented by Kong's
-# Ingress Controller. Host-based: add a CNAME `<host> → Kong's LoadBalancer
-# DNS` at your registrar; Kong handles the rest.
-# Requires the Gateway API CRDs (kong/setup.sh installs them).
+{{- if .Values.route.httpRoute.enabled }}
+# HTTPRoute for this app (Gateway API). OFF by default: this cluster has no
+# Kong gateway and no Gateway API provider, so enabling this renders a route
+# that attaches to nothing. Kept only for a future Gateway API provider.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
