@@ -23,5 +23,5 @@ probes:
     failureThreshold: 3
 route:
   enabled: true
-  host: api-dev.negd.tyagi.fun
+  host: api-dev.negd.opstree.dev
   path: /
