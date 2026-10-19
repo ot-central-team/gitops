@@ -1,0 +1,38 @@
+{{- if .Values.route.enabled }}
+# Ingress for this app, served by the AWS Load Balancer Controller
+# (ingressClassName: alb). Host-based routing: set route.host per app and add
+# the DNS record pointing at the ALB. TLS terminates at the ALB; the
+# certificate is auto-provisioned as a kubernetes.io/tls secret in the app's
+# namespace, named by route.tlsSecretName. Put the provisioning annotation
+# (the same one backstage-poc uses) in route.annotations.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "generic.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "generic.labels" . | nindent 4 }}
+  {{- with .Values.route.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .Values.route.ingressClassName | default "alb" | quote }}
+  {{- if .Values.route.tlsSecretName }}
+  tls:
+    - hosts:
+        - {{ .Values.route.host | quote }}
+      secretName: {{ .Values.route.tlsSecretName | quote }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.route.host | quote }}
+      http:
+        paths:
+          - path: {{ .Values.route.path | default "/" }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "generic.fullname" . }}-service
+                port:
+                  number: {{ .Values.service.port }}
+{{- end }}
