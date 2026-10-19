@@ -139,20 +139,25 @@ autoscaling:
 # Served by the AWS Load Balancer Controller (ingressClassName: alb).
 # There is no Kong gateway in this cluster.
 #
-# TLS: the ALB ignores Kubernetes TLS secrets. It terminates with an ACM
-# certificate, taken either from the alb.ingress.kubernetes.io/certificate-arn
-# annotation below, or automatically via the controller's certificate discovery
-# (it matches an ACM cert to the ingress hostname, nothing to configure).
+# TLS: the ALB ignores Kubernetes TLS secrets. It terminates with the org
+# wildcard ACM cert (*.opstree.dev), attached in route.annotations below.
 route:
   enabled: false
-  host: myapp.example.com   # <-- set per app, e.g. api-dev.negd.tyagi.fun
+  host: myapp.example.com   # <-- set per app, e.g. api-dev.negd.opstree.dev
   path: /
   ingressClassName: alb
-  # Annotations applied to the Ingress, e.g.:
-  #   alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-south-1:123456789012:certificate/abc
-  #   alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
-  #   alb.ingress.kubernetes.io/ssl-redirect: "443"
-  annotations: {}
+  # House defaults: every app joins the shared negd-dev-alb ALB with the org
+  # wildcard ACM cert (*.opstree.dev). Override per app only when it needs
+  # something different (e.g. its own ALB group or custom health checks).
+  # NOTE: hosts must be on opstree.dev. A tyagi.fun host is NOT covered by
+  # the org wildcard cert and its TLS would fail.
+  annotations:
+    alb.ingress.kubernetes.io/group.name: negd-dev-alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-south-1:724446904294:certificate/60f80f90-a686-4b8d-bdac-d19d199661b9
   # Gateway API HTTPRoute (Kong) stays OFF: no Kong gateway exists here.
   # Kept only for a future Gateway API provider. Do not enable as-is.
   httpRoute:
